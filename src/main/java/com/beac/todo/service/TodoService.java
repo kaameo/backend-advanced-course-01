@@ -1,7 +1,6 @@
 package com.beac.todo.service;
 
 import com.beac.todo.dto.TodoCreateDto;
-import com.beac.todo.dto.TodoStatusUpdateDto;
 import com.beac.todo.dto.TodoUpdateDto;
 import com.beac.todo.entity.Todo;
 import com.beac.todo.entity.TodoStatus;
@@ -52,15 +51,7 @@ public class TodoService {
     public Todo update(Long id, TodoUpdateDto dto) {
         Todo todo = findById(id);
 
-        todo.update(dto.title(), dto.content());
-        return todo;
-    }
-
-    @Transactional
-    public Todo changeStatus(Long id, TodoStatusUpdateDto dto) {
-        Todo todo = findById(id);
-
-        todo.changeStatus(dto.status());
+        todo.update(dto.title(), dto.content(), dto.status());
         return todo;
     }
 

@@ -23,17 +23,9 @@ class TodoNotFoundTest extends TodoApiTestSupport {
     @Test
     @DisplayName("수정")
     void updateMissing() throws Exception {
-        patchJson(BASE + "/" + MISSING_ID, """
-                {"title":"없음"}
+        update(MISSING_ID, """
+                {"title":"없음","status":"DONE"}
                 """)
-                .andExpect(error(404, "Not Found"))
-                .andExpect(jsonPath("$.message").value(MESSAGE));
-    }
-
-    @Test
-    @DisplayName("상태 변경")
-    void changeStatusOfMissing() throws Exception {
-        changeStatus(MISSING_ID, "DONE")
                 .andExpect(error(404, "Not Found"))
                 .andExpect(jsonPath("$.message").value(MESSAGE));
     }

@@ -2,7 +2,6 @@ package com.beac.todo.controller;
 
 import com.beac.todo.dto.TodoCreateDto;
 import com.beac.todo.dto.TodoResponseDto;
-import com.beac.todo.dto.TodoStatusUpdateDto;
 import com.beac.todo.dto.TodoUpdateDto;
 import com.beac.todo.entity.TodoStatus;
 import com.beac.todo.service.TodoService;
@@ -46,16 +45,10 @@ public class TodoController {
         return TodoResponseDto.from(todoService.create(dto));
     }
 
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
     public TodoResponseDto update(@PathVariable Long id,
                                   @RequestBody @Valid TodoUpdateDto dto) {
         return TodoResponseDto.from(todoService.update(id, dto));
-    }
-
-    @PatchMapping("/{id}/status")
-    public TodoResponseDto changeStatus(@PathVariable Long id,
-                                        @RequestBody @Valid TodoStatusUpdateDto dto) {
-        return TodoResponseDto.from(todoService.changeStatus(id, dto));
     }
 
     @DeleteMapping("/{id}")

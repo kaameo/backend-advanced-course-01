@@ -14,8 +14,8 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import java.nio.charset.StandardCharsets;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -57,10 +57,8 @@ abstract class TodoApiTestSupport {
         return ((Number) JsonPath.read(response, "$.id")).longValue();
     }
 
-    protected ResultActions changeStatus(long id, String status) throws Exception {
-        return patchJson(BASE + "/" + id + "/status", """
-                {"status":"%s"}
-                """.formatted(status));
+    protected ResultActions update(long id, String body) throws Exception {
+        return mockMvc.perform(put(BASE + "/" + id).contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
     protected void assertTitle(long id, String expected) throws Exception {
@@ -70,10 +68,6 @@ abstract class TodoApiTestSupport {
 
     protected ResultActions postJson(String url, String body) throws Exception {
         return mockMvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(body));
-    }
-
-    protected ResultActions patchJson(String url, String body) throws Exception {
-        return mockMvc.perform(patch(url).contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
     /** 모든 오류 응답이 따르는 {@code {status, error, message}} 형식을 검사한다. */

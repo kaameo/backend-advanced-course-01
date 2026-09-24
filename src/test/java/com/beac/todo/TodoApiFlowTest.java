@@ -24,7 +24,9 @@ class TodoApiFlowTest extends TodoApiTestSupport {
                 .andExpect(jsonPath("$.content[0].id").value(id))
                 .andExpect(jsonPath("$.page.totalElements").value(1));
 
-        changeStatus(id, "DONE")
+        update(id, """
+                {"title":"우체국 가기","content":"등기 보내기","status":"DONE"}
+                """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DONE"));
 
@@ -73,28 +75,61 @@ class TodoApiFlowTest extends TodoApiTestSupport {
     }
 
     @Test
-    @DisplayName("부분 수정은 보낸 필드만 바꾼다")
-    void updateChangesOnlySentFields() throws Exception {
+    @DisplayName("수정은 제목·내용·상태를 한 번에 교체한다")
+    void updateReplacesAllFields() throws Exception {
         long id = create("우유 사기", "2L 한 통");
 
-        patchJson(BASE + "/" + id, """
-                {"content":"2L 저지방 한 통"}
+        update(id, """
+                {"title":"우유 두 개 사기","content":"2L 저지방","status":"DONE"}
                 """)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("우유 사기"))
-                .andExpect(jsonPath("$.content").value("2L 저지방 한 통"))
-                .andExpect(jsonPath("$.status").value("TODO"));
+                .andExpect(jsonPath("$.title").value("우유 두 개 사기"))
+                .andExpect(jsonPath("$.content").value("2L 저지방"))
+                .andExpect(jsonPath("$.status").value("DONE"));
+    }
+
+    @Test
+    @DisplayName("수정에서 content 를 빼면 내용이 지워진다")
+    void updateWithoutContentClearsIt() throws Exception {
+        long id = create("우유 사기", "2L 한 통");
+
+        update(id, """
+                {"title":"우유 사기","status":"TODO"}
+                """)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+
+        mockMvc.perform(get(BASE + "/" + id))
+                .andExpect(jsonPath("$.content").isEmpty());
     }
 
     @Test
     @DisplayName("완료했던 할 일을 다시 미완료로 돌릴 수 있다")
-    void changeStatusBackToTodo() throws Exception {
+    void updateBackToTodo() throws Exception {
         long id = create("우유 사기", null);
-        changeStatus(id, "DONE");
+        update(id, """
+                {"title":"우유 사기","status":"DONE"}
+                """);
 
-        changeStatus(id, "TODO")
+        update(id, """
+                {"title":"우유 사기","status":"TODO"}
+                """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("TODO"));
+    }
+
+    @Test
+    @DisplayName("같은 수정을 반복해도 결과가 같다")
+    void updateIsIdempotent() throws Exception {
+        long id = create("우유 사기", null);
+        String body = """
+                {"title":"우유 사기","status":"DONE"}
+                """;
+
+        String first = update(id, body).andReturn().getResponse().getContentAsString();
+        String second = update(id, body).andReturn().getResponse().getContentAsString();
+
+        assertThat(second).isEqualTo(first);
     }
 
     @Test
@@ -103,7 +138,9 @@ class TodoApiFlowTest extends TodoApiTestSupport {
         create("하나", null);
         create("둘", null);
         long done = create("셋", null);
-        changeStatus(done, "DONE");
+        update(done, """
+                {"title":"셋","status":"DONE"}
+                """);
 
         mockMvc.perform(get(BASE).param("status", "DONE"))
                 .andExpect(status().isOk())

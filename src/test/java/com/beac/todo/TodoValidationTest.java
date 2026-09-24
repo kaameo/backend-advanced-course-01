@@ -67,11 +67,11 @@ class TodoValidationTest extends TodoApiTestSupport {
     void updateWithBlankTitle() throws Exception {
         long id = create("우유 사기", null);
 
-        patchJson(BASE + "/" + id, """
-                {"title":"   "}
+        update(id, """
+                {"title":"   ","status":"TODO"}
                 """)
                 .andExpect(error(400, "Bad Request"))
-                .andExpect(jsonPath("$.message").value("title: 제목은 공백만으로 이루어질 수 없습니다."));
+                .andExpect(jsonPath("$.message").value("title: 제목은 비어 있을 수 없습니다."));
         assertTitle(id, "우유 사기");
     }
 
@@ -80,8 +80,8 @@ class TodoValidationTest extends TodoApiTestSupport {
     void updateWithTooLongTitle() throws Exception {
         long id = create("우유 사기", null);
 
-        patchJson(BASE + "/" + id, """
-                {"title":"%s"}
+        update(id, """
+                {"title":"%s","status":"TODO"}
                 """.formatted("가".repeat(21)))
                 .andExpect(error(400, "Bad Request"))
                 .andExpect(jsonPath("$.message").value("title: 제목은 20자를 넘을 수 없습니다."));
@@ -89,21 +89,38 @@ class TodoValidationTest extends TodoApiTestSupport {
     }
 
     @Test
-    @DisplayName("상태 변경: status 누락")
-    void changeStatusWithoutStatus() throws Exception {
+    @DisplayName("수정: 제목 누락")
+    void updateWithoutTitle() throws Exception {
         long id = create("우유 사기", null);
 
-        patchJson(BASE + "/" + id + "/status", "{}")
+        update(id, """
+                {"status":"DONE"}
+                """)
+                .andExpect(error(400, "Bad Request"))
+                .andExpect(jsonPath("$.message", startsWith("title:")));
+        assertTitle(id, "우유 사기");
+    }
+
+    @Test
+    @DisplayName("수정: status 누락")
+    void updateWithoutStatus() throws Exception {
+        long id = create("우유 사기", null);
+
+        update(id, """
+                {"title":"우유 사기"}
+                """)
                 .andExpect(error(400, "Bad Request"))
                 .andExpect(jsonPath("$.message", startsWith("status:")));
     }
 
     @Test
-    @DisplayName("상태 변경: 없는 enum 값")
-    void changeStatusWithUnknownValue() throws Exception {
+    @DisplayName("수정: 없는 status 값")
+    void updateWithUnknownStatus() throws Exception {
         long id = create("우유 사기", null);
 
-        changeStatus(id, "done")
+        update(id, """
+                {"title":"우유 사기","status":"done"}
+                """)
                 .andExpect(error(400, "Bad Request"));
     }
 

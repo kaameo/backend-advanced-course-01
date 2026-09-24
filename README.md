@@ -43,14 +43,13 @@ docker compose down -v   # 종료 + DB 볼륨 삭제 (예시 데이터부터 다
 
 기본 경로: `/api/v1/todos`
 
-| 메서드   | 주소                        | 설명                     | 성공    |
-|----------|-----------------------------|--------------------------|---------|
-| `POST`   | `/api/v1/todos`             | 생성                     | **201** |
-| `GET`    | `/api/v1/todos`             | 목록 (페이징, 상태 필터) | **200** |
-| `GET`    | `/api/v1/todos/{id}`        | 단건 조회                | **200** |
-| `PATCH`  | `/api/v1/todos/{id}`        | 제목, 내용 수정          | **200** |
-| `PATCH`  | `/api/v1/todos/{id}/status` | 완료/미완료 변경         | **200** |
-| `DELETE` | `/api/v1/todos/{id}`        | 삭제                     | **204** |
+| 메서드   | 주소                 | 설명                         | 성공    |
+|----------|----------------------|------------------------------|---------|
+| `POST`   | `/api/v1/todos`      | 생성                         | **201** |
+| `GET`    | `/api/v1/todos`      | 목록 (페이징, 상태 필터)     | **200** |
+| `GET`    | `/api/v1/todos/{id}` | 단건 조회                    | **200** |
+| `PUT`    | `/api/v1/todos/{id}` | 수정 (제목, 내용, 완료 여부) | **200** |
+| `DELETE` | `/api/v1/todos/{id}` | 삭제                         | **204** |
 
 ### 할 일 표현
 
@@ -60,8 +59,8 @@ docker compose down -v   # 종료 + DB 볼륨 삭제 (예시 데이터부터 다
   "title": "우체국 가기",
   "content": "등기 보내기",
   "status": "TODO",
-  "createdAt": "2026-09-24T16:57:42",
-  "updatedAt": "2026-09-24T16:57:42"
+  "createdAt": "2026-09-24T17:26:36",
+  "updatedAt": "2026-09-24T17:26:36"
 }
 ```
 
@@ -122,30 +121,18 @@ docker compose down -v   # 종료 + DB 볼륨 삭제 (예시 데이터부터 다
 
 응답: **200** / **404**
 
-### PATCH /api/v1/todos/{id}
-
-부분 수정입니다. 보낸 필드만 바뀌고, 생략한 필드는 그대로 유지됩니다.
+### PUT /api/v1/todos/{id}
 
 ```json
 {
-  "content": "2L 저지방 한 통"
-}
-```
-
-- `title` 선택 (보냈다면 1–20자, 공백만 불가)
-- `content` 선택 (최대 50자)
-- `status` 는 이 API 로 바꿀 수 없습니다
-
-응답: **200** / **400** / **404**
-
-### PATCH /api/v1/todos/{id}/status
-
-```json
-{
+  "title": "우체국 가기",
+  "content": "등기 보내기",
   "status": "DONE"
 }
 ```
 
+- `title` 필수 (1–20자, 공백만 불가)
+- `content` 선택 (최대 50자). 빼거나 `null` 을 보내면 내용이 지워집니다
 - `status` 필수, `TODO` 또는 `DONE` (대소문자 구분)
 
 응답: **200** / **400** / **404**
@@ -189,10 +176,9 @@ docker compose down -v   # 종료 + DB 볼륨 삭제 (예시 데이터부터 다
 ### 주소
 
 - `/api/v1/todos`: 컬렉션은 복수형 명사, 동사는 쓰지 않습니다. `v1` 을 둬서 이후 호환되지 않는 변경을 새 버전으로 낼 수 있게 했습니다.
-- `PATCH /{id}/status` 를 따로 둠: 상태 변경은 "할 일을 완료했다"는 독립된 행위이고, 호출 빈도와 권한 조건이 제목과 내용의 수정과 달라질 수 있습니다. 수정 API 에 `status`
-  를 섞으면 `{"status":"DONE"}` 하나를 보내려고 부분 수정 규칙을 통과해야 합니다.
-- `PUT` 대신 `PATCH`: 클라이언트가 리소스 전체를 보내지 않아도 되게 했습니다. `PUT` 은 전체 교체라서 제목만 바꿀 때도 `content` 를 함께 보내야 하고, 빠뜨리면 의도치 않게
-  `null` 이 됩니다.
+- 수정은 `PUT /{id}` 하나: 제목, 내용, 완료 여부를 하나의 API 로 바꿉니다.
+- `PATCH` 대신 `PUT`: 전체 교체라서 "보내지 않은 필드"와 "`null` 을 보낸 필드"를 구분할 필요가 없고, 내용을 지우려면 `content` 를 빼고 보내면 됩니다.
+  또 `PUT` 은 HTTP 명세상 멱등이므로, 응답을 받지 못했을 때 클라이언트가 같은 요청을 다시 보내도 안전하다는 것이 메서드만으로 드러납니다.
 
 ### 상태 코드
 
@@ -205,16 +191,16 @@ docker compose down -v   # 종료 + DB 볼륨 삭제 (예시 데이터부터 다
 | **404** | 없는 id    | 조회, 수정, 삭제 모두 404 입니다.                |
 
 - 목록이 비어 있어도 200 입니다. 빈 컬렉션은 정상 상태이며 404 가 아닙니다.
-- `PATCH` 에 빈 본문 (`{}`)을 보내면 200 이고 아무것도 바뀌지 않습니다. 부분 수정의 정의상 "바꿀 필드를 하나도 안 보냈다"는 유효한 요청입니다.
+- 같은 `PUT` 을 여러 번 보내도 결과가 같습니다. 값이 바뀌지 않으면 `updatedAt` 도 그대로입니다.
 
 ### 정렬을 열지 않은 이유
 
 정렬 요구가 없으므로 `page`, `size` 만 받고 정렬은 생성시각 (createdAt)으로 고정했습니다. `size` 는 100 으로 상한을 둬 과도한 조회를 막습니다.
 
-### 완료 여부를 `boolean` 이 아닌 enum 으로
+### 완료 여부를 `boolean` 이 아닌 enum 으로 한 이유
 
 `TodoStatus { TODO, DONE }` 을 씁니다. `boolean done` 은 상태가 둘일 때만 성립하고, 나중에 상태를 늘리려면 필드를 새로 만들고 API 계약을 바꿔야 합니다.
-enum 이면 상수만 추가하면 되고, `PATCH /{id}/status` 계약이 그대로 유지됩니다.
+enum 이면 상수만 추가하면 되고, `status` 필드의 계약이 그대로 유지됩니다.
 
 ### DB 를 PostgreSQL 로 고른 이유
 
@@ -249,8 +235,8 @@ Content-Type: application/json
   "title": "우체국 가기",
   "content": "등기 보내기",
   "status": "TODO",
-  "createdAt": "2026-09-24T16:57:42",
-  "updatedAt": "2026-09-24T16:57:42"
+  "createdAt": "2026-09-24T17:26:36",
+  "updatedAt": "2026-09-24T17:26:36"
 }
 ```
 
@@ -273,16 +259,16 @@ Content-Type: application/json
       "title": "우유 사기",
       "content": "2L 한 통",
       "status": "TODO",
-      "createdAt": "2026-09-24T16:57:39",
-      "updatedAt": "2026-09-24T16:57:39"
+      "createdAt": "2026-09-24T17:26:33",
+      "updatedAt": "2026-09-24T17:26:33"
     },
     {
       "id": 2,
       "title": "스프링 공부하기",
       "content": "JPA 변경 감지와 영속성 컨텍스트 정리",
       "status": "DONE",
-      "createdAt": "2026-09-24T16:57:39",
-      "updatedAt": "2026-09-24T16:57:39"
+      "createdAt": "2026-09-24T17:26:33",
+      "updatedAt": "2026-09-24T17:26:33"
     }
   ],
   "page": {
@@ -299,9 +285,9 @@ Content-Type: application/json
 ### 3. 완료 처리
 
 ```bash
-curl -i -X PATCH $BASE/21/status \
+curl -i -X PUT $BASE/21 \
   -H 'Content-Type: application/json' \
-  -d '{"status":"DONE"}'
+  -d '{"title":"우체국 가기","content":"등기 보내기","status":"DONE"}'
 ```
 
 ```
@@ -315,8 +301,8 @@ Content-Type: application/json
   "title": "우체국 가기",
   "content": "등기 보내기",
   "status": "DONE",
-  "createdAt": "2026-09-24T16:57:42",
-  "updatedAt": "2026-09-24T16:57:45"
+  "createdAt": "2026-09-24T17:26:36",
+  "updatedAt": "2026-09-24T17:26:39"
 }
 ```
 
@@ -356,9 +342,9 @@ Content-Type: application/json
 ### 6. 404 - 존재하지 않은 id 수정
 
 ```bash
-curl -i -X PATCH $BASE/9999 \
+curl -i -X PUT $BASE/9999 \
   -H 'Content-Type: application/json' \
-  -d '{"title":"없음"}'
+  -d '{"title":"없음","status":"DONE"}'
 ```
 
 ```
@@ -388,8 +374,8 @@ curl "$BASE?status=DONE&size=1"
       "title": "스프링 공부하기",
       "content": "JPA 변경 감지와 영속성 컨텍스트 정리",
       "status": "DONE",
-      "createdAt": "2026-09-24T16:57:39",
-      "updatedAt": "2026-09-24T16:57:39"
+      "createdAt": "2026-09-24T17:26:33",
+      "updatedAt": "2026-09-24T17:26:33"
     }
   ],
   "page": {
@@ -401,23 +387,28 @@ curl "$BASE?status=DONE&size=1"
 }
 ```
 
-### 8. 부분 수정
+### 8. 수정은 전체 교체 - 내용 지우기
 
 ```bash
-curl -X PATCH $BASE/1 \
+curl -i -X PUT $BASE/1 \
   -H 'Content-Type: application/json' \
-  -d '{"content":"2L 저지방 한 통"}'
+  -d '{"title":"우유 사기","status":"TODO"}'
+```
+
+```
+HTTP/1.1 200
+Content-Type: application/json
 ```
 
 ```json
 {
   "id": 1,
   "title": "우유 사기",
-  "content": "2L 저지방 한 통",
+  "content": null,
   "status": "TODO",
-  "createdAt": "2026-09-24T16:57:39",
-  "updatedAt": "2026-09-24T16:57:48"
+  "createdAt": "2026-09-24T17:26:33",
+  "updatedAt": "2026-09-24T17:26:42"
 }
 ```
 
-`title`은 보내지 않았으므로 그대로 유지됩니다.
+`content` 를 null로 보내거나 보내지 않으면 기존 content ("2L 한 통")이 지워집니다.

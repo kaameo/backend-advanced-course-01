@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 class ErrorResponseFormatTest extends TodoApiTestSupport {
 
@@ -20,7 +20,7 @@ class ErrorResponseFormatTest extends TodoApiTestSupport {
     @Test
     @DisplayName("405 — 지원하지 않는 메서드")
     void methodNotAllowed() throws Exception {
-        mockMvc.perform(put(BASE + "/1"))
+        mockMvc.perform(patch(BASE + "/1"))
                 .andExpect(error(405, "Method Not Allowed"));
     }
 

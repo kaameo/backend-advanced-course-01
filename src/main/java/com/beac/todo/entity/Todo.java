@@ -43,13 +43,10 @@ public class Todo {
         return todo;
     }
 
-    public void update(String title, String content) {
-        if (title != null) {
-            this.title = title;
-        }
-        if (content != null) {
-            this.content = content;
-        }
+    public void update(String title, String content, TodoStatus status) {
+        this.title = title;
+        this.content = content;
+        this.status = status;
     }
 
     public void changeStatus(TodoStatus status) {
