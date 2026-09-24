@@ -21,6 +21,7 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/todo
       DATABASE_USERNAME: todo
       DATABASE_PASSWORD: todo
+      TZ: Asia/Seoul
     ports:
       - "8080:8080"
     depends_on:

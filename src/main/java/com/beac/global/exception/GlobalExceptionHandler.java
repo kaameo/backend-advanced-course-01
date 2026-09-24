@@ -2,10 +2,7 @@ package com.beac.global.exception;
 
 import com.beac.todo.exception.TodoNotFoundException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -72,10 +69,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             Exception ex, Object body, HttpHeaders headers,
             HttpStatusCode statusCode, WebRequest request) {
 
+        log.debug(ex.getMessage());
+
+        HttpStatus status = HttpStatus.valueOf(statusCode.value());
+        String message = (body instanceof ProblemDetail pd && pd.getDetail() != null)
+                ? pd.getDetail()
+                : status.getReasonPhrase();
+
         return ResponseEntity
                 .status(statusCode)
                 .headers(headers)
-                .body(ErrorResponse.of(HttpStatus.valueOf(statusCode.value()), ex.getMessage()));
+                .body(ErrorResponse.of(status, message));
     }
 
     private String format(FieldError fieldError) {

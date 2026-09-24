@@ -2,7 +2,7 @@ server:
   port: 8080
 spring:
   application:
-    name: backend-advanced-course-01
+    name: todo
   output:
     ansi:
       enabled: always
